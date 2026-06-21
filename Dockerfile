@@ -42,6 +42,12 @@ export PORT_WORKER=5001\n\
 # Create storage directory if it does not exist\n\
 mkdir -p /storage\n\
 \n\
+# If the user uploaded a cookies.txt file to the project root, copy it to storage\n\
+if [ -f "/app/cookies.txt" ]; then\n\
+  cp /app/cookies.txt /storage/cookies.txt\n\
+  echo "Copied cookies.txt to /storage"\n\
+fi\n\
+\n\
 # Run Prisma Push to create tables instantly from schema\n\
 cd /app/apps/backend && npx prisma db push --accept-data-loss\n\
 cd /app/apps/worker-stream && npx prisma db push --accept-data-loss\n\
