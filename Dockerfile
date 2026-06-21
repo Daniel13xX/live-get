@@ -43,9 +43,9 @@ export PORT=3000\n\
 # Create storage directory if it does not exist\n\
 mkdir -p /storage\n\
 \n\
-# Run Prisma Migrations before starting\n\
-cd /app/apps/backend && npx prisma migrate deploy\n\
-cd /app/apps/worker-stream && npx prisma migrate deploy\n\
+# Run Prisma Push to create tables instantly from schema\n\
+cd /app/apps/backend && npx prisma db push --accept-data-loss\n\
+cd /app/apps/worker-stream && npx prisma db push --accept-data-loss\n\
 \n\
 # Start backend in background\n\
 cd /app/apps/backend && PORT=$PORT_BACKEND npm run start &\n\
