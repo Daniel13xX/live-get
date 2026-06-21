@@ -13,12 +13,14 @@ COPY . .
 
 # Install dependencies and build for Backend
 WORKDIR /app/apps/backend
+RUN rm -f src/routes/playlists.ts
 RUN npm install
 RUN npx prisma generate
 RUN npm run build
 
 # Install dependencies and build for Worker
 WORKDIR /app/apps/worker-stream
+RUN rm -f src/check-playlist.ts
 RUN npm install
 RUN npx prisma generate
 RUN npm run build
