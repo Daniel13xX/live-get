@@ -398,6 +398,10 @@ class StreamEngine {
           isInfiniteLoop = true;
         }
 
+        if (!videoToPlay) {
+          throw new Error('videoToPlay is null unexpectedly');
+        }
+
         // 3. Update active video in DB (if not fallback and not external)
         if (!isFallback && videoToPlay.id !== 'external') {
           await prisma.project.update({
