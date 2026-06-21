@@ -3,8 +3,8 @@ export function getApiUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   if (typeof window !== 'undefined') {
-    // Dynamically connect to port 5000 on the same host
-    return `${window.location.protocol}//${window.location.hostname}:5000`;
+    // Return relative origin so Next.js proxy rewrite catches /api requests
+    return window.location.origin;
   }
   return 'http://localhost:5000';
 }
