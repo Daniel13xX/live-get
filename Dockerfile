@@ -38,7 +38,6 @@ RUN echo '#!/bin/bash\n\
 export DATABASE_URL="file:/storage/live-get.db"\n\
 export PORT_BACKEND=5000\n\
 export PORT_WORKER=5001\n\
-export PORT=3000\n\
 \n\
 # Create storage directory if it does not exist\n\
 mkdir -p /storage\n\
@@ -53,16 +52,15 @@ cd /app/apps/backend && PORT=$PORT_BACKEND npm run start &\n\
 # Start worker in background\n\
 cd /app/apps/worker-stream && PORT=$PORT_WORKER npm run start &\n\
 \n\
-# Start frontend in foreground\n\
-cd /app/apps/frontend && PORT=3000 npm run start\n\
+# Start frontend in foreground on port 80 (EasyPanel default)\n\
+cd /app/apps/frontend && PORT=80 npm run start\n\
 ' > /app/start.sh
 
 RUN chmod +x /app/start.sh
 
-# The public port for the Frontend
-EXPOSE 3000
+# The public port for the Frontend (EasyPanel Default)
+EXPOSE 80
 
-ENV PORT=3000
 ENV NODE_ENV=production
 
 # The startup script runs everything
