@@ -61,8 +61,12 @@ export async function streamRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Nenhum projeto está ativo. Selecione e ative um projeto nas configurações primeiro.' });
     }
 
-    if (activeProject.projectVideos.length === 0) {
+    if (activeProject.mode === 'LOCAL' && activeProject.projectVideos.length === 0) {
       return reply.status(400).send({ error: 'O projeto ativo não possui vídeos em sua playlist. Adicione vídeos ao projeto.' });
+    }
+
+    if (activeProject.mode === 'EXTERNAL' && (!activeProject.externalUrl || activeProject.externalUrl.trim() === '')) {
+      return reply.status(400).send({ error: 'O projeto está no modo Link Externo, mas não possui uma URL configurada.' });
     }
 
     if (!activeProject.streamKey || activeProject.streamKey.trim() === '') {
