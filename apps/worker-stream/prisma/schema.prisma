@@ -1,0 +1,86 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id            String          @id @default(uuid())
+  name          String
+  filename      String
+  filepath      String          // Path to the transcoded file
+  originalPath  String?         // Path to the original uploaded file (can be deleted after transcoding)
+  duration      Float           @default(0) // Duration in seconds
+  size          BigInt          @default(0) // File size in bytes
+  width         Int?
+  height        Int?
+  status        String          @default("PENDING") // PENDING, PROCESSING, READY, FAILED
+  errorMessage  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  projectVideos ProjectVideo[]
+}
+
+model Project {
+  id                   String          @id @default(uuid())
+  name                 String
+  mode                 String          @default("LOCAL") // LOCAL, EXTERNAL
+  externalUrl          String?
+  rtmpUrl              String          @default("rtmp://a.rtmp.youtube.com/live2")
+  streamKey            String          @default("")
+  preset               String          @default("COPY") // COPY, 1080P, 720P, 480P
+  thumbnail            String?         // Path to the uploaded project thumbnail
+  isActive             Boolean         @default(false)
+  currentVideoId       String?
+  currentVideoProgress Float           @default(0) // Progress of current video in seconds
+  fps                  Int             @default(0)
+  bitrate              Float           @default(0) // in kbps
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  projectVideos        ProjectVideo[]
+}
+
+model ProjectVideo {
+  id        String   @id @default(uuid())
+  projectId String
+  videoId   String
+  position  Int      @default(0)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([videoId])
+}
+
+model StreamSettings {
+  id                   String   @id @default("singleton")
+  rtmpUrl              String   @default("rtmp://a.rtmp.youtube.com/live2")
+  streamKey            String   @default("")
+  preset               String   @default("COPY")
+  isActive             Boolean  @default(false)
+  currentVideoId       String?
+  currentVideoProgress Float    @default(0)
+  fps                  Int      @default(0)
+  bitrate              Float    @default(0)
+  updatedAt            DateTime @updatedAt
+}
+
+model StreamLog {
+  id        String   @id @default(uuid())
+  type      String   @default("SYSTEM") // SYSTEM, FFMPEG
+  level     String   @default("INFO") // INFO, WARN, ERROR
+  message   String
+  createdAt DateTime @default(now())
+}
+
