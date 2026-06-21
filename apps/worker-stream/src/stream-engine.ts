@@ -321,7 +321,12 @@ class StreamEngine {
         if (project.mode === 'EXTERNAL' && project.externalUrl) {
           try {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
-            const ytOutput = await youtubedl(project.externalUrl, { getUrl: true });
+            const ytDlpOptions: any = { getUrl: true };
+            if (fs.existsSync('/storage/cookies.txt')) {
+              ytDlpOptions.cookies = '/storage/cookies.txt';
+              console.log('Using cookies.txt for yt-dlp authentication.');
+            }
+            const ytOutput = await youtubedl(project.externalUrl, ytDlpOptions);
             
             // yt-dlp might return multiple URLs (e.g. video and audio). We just take the first one or the combined one.
             const streamUrl = typeof ytOutput === 'string' ? ytOutput.split('\n')[0].trim() : String(ytOutput);
