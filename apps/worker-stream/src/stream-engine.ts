@@ -327,7 +327,7 @@ class StreamEngine {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
             const ytDlpOptions: any = { 
               getUrl: true,
-              extractorArgs: 'youtube:player_client=ios,tv,web', // ios and tv support cookies and bypass bot protection better
+              extractorArgs: 'youtube:player_client=tv,web', // tv works without JS runtime, web as fallback
               jsRuntimes: 'node'
             };
             
@@ -589,7 +589,8 @@ class StreamEngine {
           }
 
           // Write occasional logs to database for debug (only errors or warnings)
-          if (cleanLine.toLowerCase().includes('error') || cleanLine.toLowerCase().includes('warning')) {
+          if (cleanLine.toLowerCase().includes('error') || cleanLine.toLowerCase().includes('warning') || cleanLine.toLowerCase().includes('rtmp') || cleanLine.toLowerCase().includes('connection')) {
+            console.error(`[FFmpeg] ${cleanLine}`);
             this.logFfmpeg(cleanLine).catch(() => {});
           }
         }
