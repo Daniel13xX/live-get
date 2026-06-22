@@ -296,7 +296,7 @@ class StreamEngine {
   // Core stream loop
   private async loop() {
     while (this.isRunning) {
-      let videoToPlay: { id: string; name: string; filepath: string; duration: number } | null = null;
+      let videoToPlay: { id: string; name: string; filepath: string | string[]; duration: number } | null = null;
       let isFallback = false;
 
       try {
@@ -325,6 +325,7 @@ class StreamEngine {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
             const ytDlpOptions: any = { 
               getUrl: true,
+              format: 'bestvideo+bestaudio/best',
               extractorArgs: 'youtube:player_client=tv,web', // tv works without JS runtime, web as fallback
               jsRuntimes: 'node'
             };
@@ -339,13 +340,14 @@ class StreamEngine {
             
             const ytOutput = await youtubedl(project.externalUrl, ytDlpOptions);
             
-            // yt-dlp might return multiple URLs (e.g. video and audio). We just take the first one or the combined one.
-            const streamUrl = typeof ytOutput === 'string' ? ytOutput.split('\n')[0].trim() : String(ytOutput);
+            const urls = typeof ytOutput === 'string'
+              ? ytOutput.split('\n').map(line => line.trim()).filter(Boolean)
+              : [String(ytOutput)];
 
             videoToPlay = {
               id: 'external',
               name: 'External Stream: ' + project.externalUrl,
-              filepath: streamUrl,
+              filepath: urls,
               duration: 0
             };
             this.stats.nextVideo = null;
@@ -427,8 +429,11 @@ class StreamEngine {
         }
 
         // 4. Double check file exists (only for local files)
-        if (videoToPlay.id !== 'external' && !fs.existsSync(videoToPlay.filepath)) {
-          throw new Error(`Video file does not exist on disk: ${videoToPlay.filepath}`);
+        if (videoToPlay.id !== 'external') {
+          const singlePath = videoToPlay.filepath as string;
+          if (!fs.existsSync(singlePath)) {
+            throw new Error(`Video file does not exist on disk: ${singlePath}`);
+          }
         }
 
         // 5. Run stream
@@ -487,8 +492,8 @@ class StreamEngine {
     this.resetStats();
   }
 
-  // Run a single FFmpeg instance for one video
-  private runFfmpeg(filePath: string, rtmpUrl: string, streamKey: string, preset: string, isInfiniteLoop: boolean): Promise<void> {
+  // Run a single FFmpeg instance for one video or multiple URLs
+  private runFfmpeg(filePathOrUrls: string | string[], rtmpUrl: string, streamKey: string, preset: string, isInfiniteLoop: boolean): Promise<void> {
     return new Promise((resolve) => {
       // Auto-upgrade rtmp:// to rtmps:// to bypass port 1935 blocks on cloud hosting providers.
       // rtmps uses port 443 (HTTPS) which is never blocked. YouTube supports both.
@@ -496,15 +501,29 @@ class StreamEngine {
       const destination = `${secureUrl}/${streamKey}`;
       let args: string[] = [];
 
+      const inputs = Array.isArray(filePathOrUrls) ? filePathOrUrls : [filePathOrUrls];
+      const hasMultipleInputs = inputs.length >= 2;
+
       // Build preset arguments
       // All presets use -re to stream at native speed
+      args = ['-re'];
+      
+      if (isInfiniteLoop && !hasMultipleInputs) {
+        args.push('-stream_loop', '-1');
+      }
+
+      // Add inputs
+      for (const input of inputs) {
+        args.push('-i', input);
+      }
+
+      // If separate video and audio URLs, map the video from first input and audio from second input
+      if (hasMultipleInputs) {
+        args.push('-map', '0:v:0', '-map', '1:a:0');
+      }
+
       if (preset === 'COPY') {
-        args = ['-re'];
-        if (isInfiniteLoop) {
-          args.push('-stream_loop', '-1');
-        }
         args.push(
-          '-i', filePath,
           '-c:v', 'copy',
           '-c:a', 'copy',
           '-f', 'flv',
@@ -525,12 +544,7 @@ class StreamEngine {
           resolution = '854:480';
         }
 
-        args = ['-re'];
-        if (isInfiniteLoop) {
-          args.push('-stream_loop', '-1');
-        }
         args.push(
-          '-i', filePath,
           '-c:v', 'libx264',
           '-preset', 'veryfast',
           '-b:v', videoBitrate,
@@ -549,7 +563,11 @@ class StreamEngine {
       }
 
       console.log(`Starting FFmpeg with command: ffmpeg ${args.join(' ')}`);
-      this.logSystem(`Streaming video: "${path.basename(filePath)}" with preset: ${preset}`, 'INFO').catch(() => {});
+      
+      const logName = inputs[0].startsWith('http') 
+        ? 'External YouTube Stream' 
+        : path.basename(inputs[0]);
+      this.logSystem(`Streaming video: "${logName}" with preset: ${preset}`, 'INFO').catch(() => {});
 
       this.ffmpegProcess = spawn(ffmpegBinary, args);
 
