@@ -2,11 +2,13 @@ import { spawn, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 // @ts-ignore
-import ffmpegPath from 'ffmpeg-static';
 import youtubedl from 'youtube-dl-exec';
 import { prisma } from './services/db.js';
 
-const ffmpegBinary = ffmpegPath || 'ffmpeg';
+// Use system FFmpeg (installed via apt-get in Dockerfile) instead of ffmpeg-static.
+// ffmpeg-static bundles a pre-compiled binary that can cause SIGSEGV (segfault)
+// on different CPU architectures (arm64 vs x64) used by cloud hosting providers.
+const ffmpegBinary = 'ffmpeg';
 
 export interface StreamStats {
   isActive: boolean;
