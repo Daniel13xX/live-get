@@ -69,11 +69,7 @@ class StreamEngine {
     fs.mkdirSync(fallbackDir, { recursive: true });
     const fallbackPath = path.join(fallbackDir, 'fallback.mp4');
 
-    // Force regenerate if it's too small or corrupt (less than 1MB for a 10s video is suspiciously small)
-    if (!fs.existsSync(fallbackPath) || fs.statSync(fallbackPath).size < 1024 * 100) {
-      if (fs.existsSync(fallbackPath)) {
-        fs.unlinkSync(fallbackPath); // delete corrupt file
-      }
+    if (!fs.existsSync(fallbackPath)) {
       console.log('Generating silent black fallback video...');
       await this.logSystem('Generating silent black fallback video...', 'INFO');
       
@@ -567,6 +563,8 @@ class StreamEngine {
       this.ffmpegProcess.stderr?.on('data', (data) => {
         const chunk = data.toString();
         stderrBuffer += chunk;
+        // Always print raw ffmpeg output for EasyPanel visibility
+        process.stdout.write(`[FFmpeg] ${chunk}`);
 
         // Parse stats line
         // frame=  123 fps= 30 q=-1.0 size=    1234kB time=00:00:04.12 bitrate=2400.1kbits/s speed= 1x
@@ -599,9 +597,9 @@ class StreamEngine {
         }
       });
 
-      this.ffmpegProcess.on('close', (code) => {
-        console.log(`FFmpeg process closed with code ${code}`);
-        const exitMsg = `FFmpeg closed. Code: ${code} ${this.isSkipping ? '(User skipped)' : ''}`;
+      this.ffmpegProcess.on('close', (code, signal) => {
+        console.log(`FFmpeg process closed with code ${code}, signal: ${signal}`);
+        const exitMsg = `FFmpeg closed. Code: ${code}, Signal: ${signal} ${this.isSkipping ? '(User skipped)' : ''}`;
         this.logSystem(exitMsg, code === 0 || code === 255 ? 'INFO' : 'ERROR').catch(() => {});
         
         this.ffmpegProcess = null;
