@@ -492,7 +492,10 @@ class StreamEngine {
   // Run a single FFmpeg instance for one video
   private runFfmpeg(filePath: string, rtmpUrl: string, streamKey: string, preset: string, isInfiniteLoop: boolean): Promise<void> {
     return new Promise((resolve) => {
-      const destination = `${rtmpUrl}/${streamKey}`;
+      // Auto-upgrade rtmp:// to rtmps:// to bypass port 1935 blocks on cloud hosting providers.
+      // rtmps uses port 443 (HTTPS) which is never blocked. YouTube supports both.
+      const secureUrl = rtmpUrl.replace(/^rtmp:\/\//, 'rtmps://');
+      const destination = `${secureUrl}/${streamKey}`;
       let args: string[] = [];
 
       // Build preset arguments
