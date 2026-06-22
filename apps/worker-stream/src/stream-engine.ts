@@ -327,7 +327,7 @@ class StreamEngine {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
             const ytDlpOptions: any = { 
               getUrl: true,
-              extractorArgs: 'youtube:player_client=android', // Bypass for bot protection
+              extractorArgs: 'youtube:player_client=ios,tv,web', // ios and tv support cookies and bypass bot protection better
               jsRuntimes: 'node'
             };
             
@@ -452,7 +452,9 @@ class StreamEngine {
         this.currentStreamKey = project.streamKey;
 
         const startTime = Date.now();
-        await this.runFfmpeg(videoToPlay.filepath, project.rtmpUrl, project.streamKey, project.preset, isInfiniteLoop);
+        // Force CPU preset for fallback video to guarantee RTMP compatibility
+        const presetToUse = isFallback ? 'CPU' : project.preset;
+        await this.runFfmpeg(videoToPlay.filepath, project.rtmpUrl, project.streamKey, presetToUse, isInfiniteLoop);
         
         const durationPlayed = (Date.now() - startTime) / 1000;
         
