@@ -69,7 +69,7 @@ class StreamEngine {
     fs.mkdirSync(fallbackDir, { recursive: true });
     const fallbackPath = path.join(fallbackDir, 'fallback.mp4');
 
-    if (!fs.existsSync(fallbackPath)) {
+    if (!fs.existsSync(fallbackPath) || fs.statSync(fallbackPath).size === 0) {
       console.log('Generating silent black fallback video...');
       await this.logSystem('Generating silent black fallback video...', 'INFO');
       
@@ -321,11 +321,19 @@ class StreamEngine {
         if (project.mode === 'EXTERNAL' && project.externalUrl) {
           try {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
-            const ytDlpOptions: any = { getUrl: true };
-            if (fs.existsSync('/storage/cookies.txt')) {
+            const ytDlpOptions: any = { 
+              getUrl: true,
+              'extractor-args': 'youtube:player_client=android' // Bypass for bot protection
+            };
+            
+            if (fs.existsSync('/app/cookies.txt')) {
+              ytDlpOptions.cookies = '/app/cookies.txt';
+              console.log('Using cookies.txt from /app for yt-dlp authentication.');
+            } else if (fs.existsSync('/storage/cookies.txt')) {
               ytDlpOptions.cookies = '/storage/cookies.txt';
-              console.log('Using cookies.txt for yt-dlp authentication.');
+              console.log('Using cookies.txt from /storage for yt-dlp authentication.');
             }
+            
             const ytOutput = await youtubedl(project.externalUrl, ytDlpOptions);
             
             // yt-dlp might return multiple URLs (e.g. video and audio). We just take the first one or the combined one.
