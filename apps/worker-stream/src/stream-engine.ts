@@ -322,7 +322,36 @@ class StreamEngine {
 
         if (project.mode === 'EXTERNAL' && project.externalUrl) {
           try {
-            console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
+            // Parse list of URLs (split by newline or comma)
+            const externalUrls = project.externalUrl
+              .split(/[\n,]+/)
+              .map(url => url.trim())
+              .filter(url => url.startsWith('http'));
+
+            if (externalUrls.length === 0) {
+              throw new Error('Nenhuma URL externa válida encontrada.');
+            }
+
+            // Find which URL to play (queue/playlist logic)
+            let selectedUrl = externalUrls[0];
+            let nextUrl = externalUrls[0];
+            
+            if (project.currentVideoId) {
+              const lastIndex = externalUrls.indexOf(project.currentVideoId);
+              if (lastIndex !== -1) {
+                const nextIndex = (lastIndex + 1) % externalUrls.length;
+                selectedUrl = externalUrls[nextIndex];
+                
+                const queueNextIndex = (nextIndex + 1) % externalUrls.length;
+                nextUrl = externalUrls[queueNextIndex];
+              } else if (externalUrls.length > 1) {
+                nextUrl = externalUrls[1];
+              }
+            } else if (externalUrls.length > 1) {
+              nextUrl = externalUrls[1];
+            }
+
+            console.log(`Extracting stream URL for external link: ${selectedUrl}`);
             const ytDlpOptions: any = { 
               getUrl: true,
               format: 'bestvideo+bestaudio/best',
@@ -338,7 +367,7 @@ class StreamEngine {
               console.log('Using cookies.txt from /storage for yt-dlp authentication.');
             }
             
-            const ytOutput = await youtubedl(project.externalUrl, ytDlpOptions);
+            const ytOutput = await youtubedl(selectedUrl, ytDlpOptions);
             
             const urls = typeof ytOutput === 'string'
               ? ytOutput.split('\n').map(line => line.trim()).filter(Boolean)
@@ -346,11 +375,18 @@ class StreamEngine {
 
             videoToPlay = {
               id: 'external',
-              name: 'External Stream: ' + project.externalUrl,
+              name: 'External Stream: ' + selectedUrl,
               filepath: urls,
-              duration: 0
-            };
-            this.stats.nextVideo = null;
+              duration: 0,
+              url: selectedUrl // Custom property to save to DB
+            } as any;
+
+            // Set next video stats
+            this.stats.nextVideo = externalUrls.length > 1 ? {
+              id: 'external-next',
+              name: 'Próximo: ' + nextUrl
+            } : null;
+
             isFallback = false;
             isInfiniteLoop = false;
           } catch (err: any) {
@@ -420,11 +456,14 @@ class StreamEngine {
           throw new Error('videoToPlay is null unexpectedly');
         }
 
-        // 3. Update active video in DB (if not fallback and not external)
-        if (!isFallback && videoToPlay.id !== 'external') {
+        // 3. Update active video in DB (if not fallback)
+        if (!isFallback) {
+          const currentId = videoToPlay.id === 'external' 
+            ? ((videoToPlay as any).url || 'external')
+            : videoToPlay.id;
           await prisma.project.update({
             where: { id: project.id },
-            data: { currentVideoId: videoToPlay.id }
+            data: { currentVideoId: currentId }
           });
         }
 
