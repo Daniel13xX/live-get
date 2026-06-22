@@ -1631,16 +1631,16 @@ export default function AdminDashboard() {
                               </p>
                               <div className="flex flex-col gap-1.5">
                                 <label className="text-xs text-secondary font-semibold">URL Externa</label>
-                                <input
-                                  type="url"
-                                  placeholder="https://www.youtube.com/watch?v=..."
-                                  className="text-input text-sm w-full"
+                                <textarea
+                                  placeholder={"Cole um ou mais links do YouTube (um por linha)\nExemplo:\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\nhttps://www.youtube.com/watch?v=c1UYzuk_B9E"}
+                                  className="text-input text-sm w-full h-24 resize-none font-mono py-2"
                                   value={currentEditingProject.externalUrl || ''}
                                   onChange={(e) => {
                                     handleUpdateProjectSettings(currentEditingProject.id, { externalUrl: e.target.value });
                                     setEditingProject({ ...currentEditingProject, externalUrl: e.target.value });
                                   }}
                                 />
+                                <span className="text-[10px] text-muted leading-none mt-1">Cole uma URL por linha para retransmiti-las em fila automática.</span>
                               </div>
                             </div>
                           ) : (
@@ -1791,15 +1791,14 @@ export default function AdminDashboard() {
 
                     {newProjectMode === 'EXTERNAL' && (
                       <div className="flex flex-col gap-1.5 animate-fadeIn">
-                        <label className="text-xs text-secondary font-semibold">URL Externa (YouTube, Twitch, etc.)</label>
-                        <input
-                          type="url"
+                        <textarea
                           required
-                          placeholder="https://www.youtube.com/watch?v=..."
-                          className="text-input text-sm w-full"
+                          placeholder={"Cole um ou mais links do YouTube (um por linha)\nExemplo:\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\nhttps://www.youtube.com/watch?v=c1UYzuk_B9E"}
+                          className="text-input text-sm w-full h-24 resize-none font-mono py-2"
                           value={newProjectExternalUrl}
                           onChange={(e) => setNewProjectExternalUrl(e.target.value)}
                         />
+                        <span className="text-[10px] text-muted leading-none mt-1">Cole uma URL por linha para criar o projeto com uma fila de transmissão.</span>
                       </div>
                     )}
 
