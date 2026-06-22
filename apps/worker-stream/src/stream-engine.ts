@@ -69,7 +69,11 @@ class StreamEngine {
     fs.mkdirSync(fallbackDir, { recursive: true });
     const fallbackPath = path.join(fallbackDir, 'fallback.mp4');
 
-    if (!fs.existsSync(fallbackPath) || fs.statSync(fallbackPath).size === 0) {
+    // Force regenerate if it's too small or corrupt (less than 1MB for a 10s video is suspiciously small)
+    if (!fs.existsSync(fallbackPath) || fs.statSync(fallbackPath).size < 1024 * 100) {
+      if (fs.existsSync(fallbackPath)) {
+        fs.unlinkSync(fallbackPath); // delete corrupt file
+      }
       console.log('Generating silent black fallback video...');
       await this.logSystem('Generating silent black fallback video...', 'INFO');
       
@@ -323,7 +327,8 @@ class StreamEngine {
             console.log(`Extracting stream URL for external link: ${project.externalUrl}`);
             const ytDlpOptions: any = { 
               getUrl: true,
-              'extractor-args': 'youtube:player_client=android' // Bypass for bot protection
+              extractorArgs: 'youtube:player_client=android', // Bypass for bot protection
+              jsRuntimes: 'node'
             };
             
             if (fs.existsSync('/app/cookies.txt')) {
